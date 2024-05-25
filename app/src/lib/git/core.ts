@@ -37,6 +37,12 @@ export interface IGitExecutionOptions extends DugiteExecutionOptions {
 
   /** Should it track & report LFS progress? */
   readonly trackLFSProgress?: boolean
+
+  /**
+   * Whether the command about to run is part of a background task or not.
+   * This affects error handling and UI such as credential prompts.
+   */
+  readonly isBackgroundTask?: boolean
 }
 
 /**
@@ -161,7 +167,7 @@ export async function git(
     // from a terminal or if the system environment variables
     // have TERM set Git won't consider us as a smart terminal.
     // See https://github.com/git/git/blob/a7312d1a2/editor.c#L11-L15
-    opts.env = { TERM: 'dumb', ...combinedEnv } as object
+    opts.env = { TERM: 'dumb', ...combinedEnv }
 
     const commandName = `${name}: git ${args.join(' ')}`
 
@@ -244,7 +250,7 @@ export async function git(
     }
 
     throw new GitError(gitResult, args)
-  })
+  }, options?.isBackgroundTask ?? false)
 }
 
 /**

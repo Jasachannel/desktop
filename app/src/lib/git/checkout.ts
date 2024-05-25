@@ -2,7 +2,6 @@ import { git, IGitExecutionOptions, gitNetworkArguments } from './core'
 import { Repository } from '../../models/repository'
 import { Branch, BranchType } from '../../models/branch'
 import { ICheckoutProgress } from '../../models/progress'
-import { IGitAccount } from '../../models/git-account'
 import {
   CheckoutProgressParser,
   executionOptionsWithProgress,
@@ -16,6 +15,7 @@ import {
 import { WorkingDirectoryFileChange } from '../../models/status'
 import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
 import { CommitOneLine, shortenSHA } from '../../models/commit'
+import { IRemote } from '../../models/remote'
 
 export type ProgressCallback = (progress: ICheckoutProgress) => void
 
@@ -46,16 +46,15 @@ async function getBranchCheckoutArgs(branch: Branch) {
 
 async function getCheckoutOpts(
   repository: Repository,
-  account: IGitAccount | null,
   title: string,
   target: string,
+  currentRemote: IRemote | null,
   progressCallback?: ProgressCallback,
   initialDescription?: string
 ): Promise<IGitExecutionOptions> {
   const opts: IGitExecutionOptions = {
     env: await envForRemoteOperation(
-      account,
-      getFallbackUrlForProxyResolve(account, repository)
+      getFallbackUrlForProxyResolve(repository, currentRemote)
     ),
     expectedErrors: AuthenticationErrors,
   }
@@ -111,15 +110,15 @@ async function getCheckoutOpts(
  */
 export async function checkoutBranch(
   repository: Repository,
-  account: IGitAccount | null,
   branch: Branch,
+  currentRemote: IRemote | null,
   progressCallback?: ProgressCallback
 ): Promise<true> {
   const opts = await getCheckoutOpts(
     repository,
-    account,
     `Checking out branch ${branch.name}`,
     branch.name,
+    currentRemote,
     progressCallback,
     `Switching to ${__DARWIN__ ? 'Branch' : 'branch'}`
   )
@@ -151,16 +150,16 @@ export async function checkoutBranch(
  */
 export async function checkoutCommit(
   repository: Repository,
-  account: IGitAccount | null,
   commit: CommitOneLine,
+  currentRemote: IRemote | null,
   progressCallback?: ProgressCallback
 ): Promise<true> {
   const title = `Checking out ${__DARWIN__ ? 'Commit' : 'commit'}`
   const opts = await getCheckoutOpts(
     repository,
-    account,
     title,
     shortenSHA(commit.sha),
+    currentRemote,
     progressCallback
   )
 
